@@ -9,8 +9,8 @@ import time
 #===================
 # Flask stuff for Google App Engine
 #===================
-#from flask import Flask
-#app = Flask(__name__)
+from flask import Flask
+app = Flask(__name__)
 #===================
 
 class Calendar(object):
@@ -76,7 +76,7 @@ class Event(object):
 
             return output
 
-# @app.route("/")
+@app.route("/")
 def build_calendar():
     try:
         req = urllib2.Request('http://www.timeanddate.com/holidays/uk/')
