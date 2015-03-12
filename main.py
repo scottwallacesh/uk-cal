@@ -11,9 +11,6 @@ import time
 #===================
 from flask import Flask
 app = Flask(__name__)
-
-from google.appengine.api import urlfetch
-urlfetch.set_default_fetch_deadline(45)
 #===================
 
 class Calendar(object):
@@ -82,9 +79,7 @@ class Event(object):
 @app.route("/")
 def build_calendar():
     try:
-        req = urllib2.Request('http://www.timeanddate.com/holidays/uk/')
-        response = urllib2.urlopen(req)
-        page = response.read()
+        page = urllib2.urlopen('http://www.timeanddate.com/holidays/uk/').read()
     except urllib2.URLError:
         # Exit now
         sys.exit(1)
