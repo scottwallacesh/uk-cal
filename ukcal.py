@@ -73,25 +73,39 @@ class Event:
 
             return output
 
-req = urllib2.Request('http://www.timeanddate.com/holidays/uk/')
-response = urllib2.urlopen(req)
-page = response.read()
+# @app.route("/")
+def build_calendar():
+    try:
+        req = urllib2.Request('http://www.timeanddate.com/holidays/uk/')
+        response = urllib2.urlopen(req)
+        page = response.read()
+    except urllib2.URLError as errorstring:
+        # Exit now
+        sys.exit(1)
 
-html = fromstring(page)
-candidates = html.xpath('//*[@class="c0" or @class="c1"]')
+    try:
+        html = fromstring(page)
+        candidates = html.xpath('//*[@class="c0" or @class="c1"]')
+    except Exception as errorstring:
+        # Exit now
+        sys.exit(2)
+    else:
+        calendar = Calendar()
+        for event in candidates:
+            if event.xpath('td[3]/text()')[0] in ['Observance', 'Bank holiday', 'Common Local holidays']:
+                new_event = Event()
+                eventdate = datetime.datetime.strptime(event.xpath('th/text()')[0], '%b %d')
 
-calendar = Calendar()
-for event in candidates:
-    if event.xpath('td[3]/text()')[0] in ['Observance', 'Bank holiday', 'Common Local holidays']:
-        new_event = Event()
-        eventdate = datetime.datetime.strptime(event.xpath('th/text()')[0], '%b %d')
+                new_event.fields["UID"] = event.xpath('@id')[0]
+                new_event.fields['DTSTART'] = eventdate.replace(year=int(datetime.datetime.now().strftime('%Y'))).timetuple()
+                new_event.fields['SUMMARY'] = event.xpath('td/a/text()')[0]
+                new_event.fields['LOCATION'] = 'UK'
+                new_event.fields['DURATION'] = 'PT1D'
 
-        new_event.fields["UID"] = event.xpath('@id')[0]
-        new_event.fields['DTSTART'] = eventdate.replace(year=int(datetime.datetime.now().strftime('%Y'))).timetuple()
-        new_event.fields['SUMMARY'] = event.xpath('td/a/text()')[0]
-        new_event.fields['LOCATION'] = 'UK'
-        new_event.fields['DURATION'] = 'PT1D'
+                calendar.add(new_event)
 
-        calendar.add(new_event)
+        print str(calendar)
 
-print str(calendar)
+if __name__ == "__main__":
+    build_calendar()
+    sys.exit(0)
