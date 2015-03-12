@@ -13,8 +13,11 @@ import time
 #app = Flask(__name__)
 #===================
 
-class Calendar:
-    header = "BEGIN:VCALENDAR\nX-WR-CALNAME:UK Secular Calendar\nVERSION:2.0\nPRODID:-//Scott Wallace//NONSGML uk-cal//EN"
+class Calendar(object):
+    header = """BEGIN:VCALENDAR
+X-WR-CALNAME:UK Secular Calendar
+VERSION:2.0
+PRODID:-//Scott Wallace//NONSGML uk-cal//EN"""
     footer = "END:VCALENDAR"
 
     def __init__(self):
@@ -33,8 +36,8 @@ class Calendar:
 
         return output
 
-class Event:
-    mandatory_fields = [ "DTSTART", "SUMMARY", "LOCATION", "UID" ]
+class Event(object):
+    mandatory_fields = ["DTSTART", "SUMMARY", "LOCATION", "UID"]
 
     header = "BEGIN:VEVENT"
     footer = "END:VEVENT"
@@ -68,7 +71,7 @@ class Event:
 
                 output += "%s:%s\n" % (key, val)
 
-            output += "DTSTAMP:%s" % time.strftime("%Y%m%dT%H%M00Z", time.localtime()) + "\n"
+            output += 'DTSTAMP:%s\n' % time.strftime("%Y%m%dT%H%M00Z", time.localtime())
             output += self.footer + "\n"
 
             return output
@@ -79,14 +82,14 @@ def build_calendar():
         req = urllib2.Request('http://www.timeanddate.com/holidays/uk/')
         response = urllib2.urlopen(req)
         page = response.read()
-    except urllib2.URLError as errorstring:
+    except urllib2.URLError:
         # Exit now
         sys.exit(1)
 
     try:
         html = fromstring(page)
         candidates = html.xpath('//*[@class="c0" or @class="c1"]')
-    except Exception as errorstring:
+    except Exception:
         # Exit now
         sys.exit(2)
     else:
