@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import urllib2
 from lxml.html import fromstring
@@ -11,13 +13,14 @@ print page
 html = fromstring(page)
 candidates = html.xpath('//*[@class="c0" or @class="c1"]')
 
-events = []
+events = {}
 for event in candidates:
-    rawdate = event.xpath('th/text()')
-    name = event.xpath('td/a/text()')
-    type = event.xpath('td[3]/text()')
+    rawdate = event.xpath('th/text()')[0]
+    name = event.xpath('td/a/text()')[0]
+    type = event.xpath('td[3]/text()')[0]
 
-    if type[0] in ['Observance', 'Bank holiday']:
-        events.append([name, rawdate, type[0]])
+    print repr(name)
+    if type in ['Observance', 'Bank holiday']:
+        events[name] = {"date": rawdate, "type":  type}
 
 print events
