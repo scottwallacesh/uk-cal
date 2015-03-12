@@ -107,8 +107,8 @@ def build_calendar():
 
                 calendar.add(new_event)
 
-        print str(calendar)
+        return str(calendar)
 
 if __name__ == "__main__":
-    build_calendar()
+    print build_calendar()
     sys.exit(0)
