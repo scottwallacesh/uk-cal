@@ -7,10 +7,13 @@ import datetime
 import time
 
 #===================
-# Flask stuff for Google App Engine
+# Stuff for Google App Engine
 #===================
 from flask import Flask
 app = Flask(__name__)
+
+from google.appengine.api import urlfetch
+urlfetch.set_default_fetch_deadline(45)
 #===================
 
 class Calendar(object):
