@@ -1,24 +1,23 @@
-#!/usr/bin/env python
-
 import sys
 import urllib2
-from lxml.html import fromstring
-import datetime
+from BeautifulSoup import BeautifulSoup
+from datetime import datetime
 import time
 
-#===================
+# ===================
 # Stuff for Google App Engine
-#===================
+# ===================
 from flask import Flask
 app = Flask(__name__)
-#===================
+# ===================
+
 
 class Calendar(object):
     header = """BEGIN:VCALENDAR
 X-WR-CALNAME:UK Secular Calendar
 VERSION:2.0
 PRODID:-//Scott Wallace//NONSGML uk-cal//EN"""
-    footer = "END:VCALENDAR"
+    footer = 'END:VCALENDAR'
 
     def __init__(self):
         self.events = []
@@ -29,18 +28,19 @@ PRODID:-//Scott Wallace//NONSGML uk-cal//EN"""
             self.events.append(event)
 
     def __str__(self):
-        output = self.header + "\n"
+        output = self.header + '\n'
         for event in self.events:
             output += str(event)
-        output += self.footer + "\n"
+        output += self.footer + '\n'
 
         return output
 
-class Event(object):
-    mandatory_fields = ["DTSTART", "SUMMARY", "LOCATION", "UID"]
 
-    header = "BEGIN:VEVENT"
-    footer = "END:VEVENT"
+class Event(object):
+    mandatory_fields = ['DTSTART', 'SUMMARY', 'LOCATION', 'UID']
+
+    header = 'BEGIN:VEVENT'
+    footer = 'END:VEVENT'
 
     def __init__(self):
         self.fields = {}
@@ -52,7 +52,7 @@ class Event(object):
                 return False
 
         # Check the time entries are the correct type:
-        if not isinstance(self.fields["DTSTART"], time.struct_time):
+        if not isinstance(self.fields['DTSTART'], time.struct_time):
             return False
 
         return True
@@ -60,46 +60,55 @@ class Event(object):
     def __str__(self):
         # Check the basics exist
         if self.check_fields():
-            output = self.header + "\n"
+            output = self.header + '\n'
 
             # Output the fields added
             for key, val in self.fields.iteritems():
                 # Format time values correctly
                 if isinstance(val, time.struct_time):
-                    key = "%s;VALUE=DATE" % key
-                    val = time.strftime("%Y%m%d", val)
+                    key = '%s;VALUE=DATE' % key
+                    val = time.strftime('%Y%m%d', val)
 
-                output += "%s:%s\n" % (key, val)
+                output += '%s:%s\n' % (key, val)
 
-            output += 'DTSTAMP:%s\n' % time.strftime("%Y%m%dT%H%M00Z", time.localtime())
-            output += self.footer + "\n"
+            output += 'DTSTAMP:%s\n' % time.strftime('%Y%m%dT%H%M00Z',
+                                                     time.localtime())
+            output += self.footer + '\n'
 
             return output
 
-@app.route("/")
+
+@app.route('/')
 def build_calendar():
     try:
-        page = urllib2.urlopen('http://www.timeanddate.com/holidays/uk/').read()
+        page = (urllib2
+                .urlopen('https://www.timeanddate.com/holidays/uk/')
+                .read())
     except urllib2.URLError:
         # Exit now
         sys.exit(1)
 
     try:
-        html = fromstring(page)
-        candidates = html.xpath('//*[@class="c0" or @class="c1"]')
-    except Exception:
+        soup = BeautifulSoup(page)
+        candidates = soup.findAll('tr', {'class': ['c0', 'c1']})
+    except:
         # Exit now
         sys.exit(2)
     else:
         calendar = Calendar()
         for event in candidates:
-            if event.xpath('td[3]/text()')[0] in ['Observance', 'Bank holiday', 'Common Local holidays']:
+            if event.findAll('td')[2].text in [
+                'Observance',
+                'Clock change/Daylight Saving Time'
+            ]:
                 new_event = Event()
-                eventdate = datetime.datetime.strptime(event.xpath('th/text()')[0], '%b %d')
+                eventdate = (datetime.strptime(event.findAll('th')[0].text,
+                                               '%b %d'))
 
-                new_event.fields["UID"] = event.xpath('@id')[0]
-                new_event.fields['DTSTART'] = eventdate.replace(year=int(datetime.datetime.now().strftime('%Y'))).timetuple()
-                new_event.fields['SUMMARY'] = event.xpath('td/a/text()')[0]
+                new_event.fields['UID'] = event['id']
+                new_event.fields['DTSTART'] = (eventdate.replace(
+                    year=int(datetime.now().strftime('%Y'))).timetuple())
+                new_event.fields['SUMMARY'] = event.find('a').text
                 new_event.fields['LOCATION'] = 'UK'
                 new_event.fields['DURATION'] = 'PT1D'
 
@@ -107,6 +116,7 @@ def build_calendar():
 
         return str(calendar)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     print build_calendar()
     sys.exit(0)
