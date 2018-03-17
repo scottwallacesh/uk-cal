@@ -12,6 +12,11 @@ app = Flask(__name__)
 # ===================
 
 
+USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) ' +
+              'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+              'Chrome/64.0.3282.186 Safari/537.36')
+
+
 class Calendar(object):
     header = """BEGIN:VCALENDAR
 X-WR-CALNAME:UK Secular Calendar
@@ -80,22 +85,19 @@ class Event(object):
 
 @app.route('/')
 def build_calendar():
-    try:
-        page = (urllib2
-                .urlopen('https://www.timeanddate.com/holidays/uk/')
-                .read())
-    except urllib2.URLError:
-        # Exit now
-        sys.exit(1)
+    calendar = Calendar()
 
     try:
+        request = urllib2.Request('https://www.timeanddate.com/holidays/uk/')
+        request.add_header('User-Agent', USER_AGENT)
+        page = (urllib2
+                .urlopen(request)
+                .read())
+    except urllib2.URLError as errmsg:
+        app.logger.error(errmsg)
+    else:
         soup = BeautifulSoup(page)
         candidates = soup.findAll('tr', {'class': ['c0', 'c1']})
-    except:
-        # Exit now
-        sys.exit(2)
-    else:
-        calendar = Calendar()
         for event in candidates:
             if event.findAll('td')[2].text in [
                 'Observance',
@@ -114,7 +116,7 @@ def build_calendar():
 
                 calendar.add(new_event)
 
-        return str(calendar)
+    return str(calendar)
 
 
 if __name__ == '__main__':
