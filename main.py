@@ -1,14 +1,22 @@
+#!/usr/bin/env python
+
+"""
+Google App Engine app to output iCal format of observed holidays
+in England.
+"""
+
 import sys
 import urllib2
-from BeautifulSoup import BeautifulSoup
 from datetime import datetime
 import time
+from BeautifulSoup import BeautifulSoup
+
 
 # ===================
 # Stuff for Google App Engine
 # ===================
 from flask import Flask
-app = Flask(__name__)
+APP = Flask(__name__)
 # ===================
 
 
@@ -18,6 +26,7 @@ USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) ' +
 
 
 class Calendar(object):
+    """ Class to represent a whole iCAL calendar. """
     header = """BEGIN:VCALENDAR
 X-WR-CALNAME:UK Secular Calendar
 VERSION:2.0
@@ -28,11 +37,13 @@ PRODID:-//Scott Wallace//NONSGML uk-cal//EN"""
         self.events = []
 
     def add(self, event):
-        # Check it's a valid Event type and the fields are all correct:
+        """ Method to add an Entry object to the Calendar """
+        # Check it's a valid Event type and the fields are all correct
         if isinstance(event, Event) and event.check_fields():
             self.events.append(event)
 
     def __str__(self):
+        """ Output calendar as iCal string. """
         output = self.header + '\n'
         for event in self.events:
             output += str(event)
@@ -42,6 +53,7 @@ PRODID:-//Scott Wallace//NONSGML uk-cal//EN"""
 
 
 class Event(object):
+    """ Class to represent an event """
     mandatory_fields = ['DTSTART', 'SUMMARY', 'LOCATION', 'UID']
 
     header = 'BEGIN:VEVENT'
@@ -51,7 +63,8 @@ class Event(object):
         self.fields = {}
 
     def check_fields(self):
-        # Check the mandatory fields exist:
+        """ Method to check mandatory iCal event fields exist """
+        # Check the mandatory fields exist
         for field in self.mandatory_fields:
             if field not in self.fields:
                 return False
@@ -63,6 +76,7 @@ class Event(object):
         return True
 
     def __str__(self):
+        """ Output an event in iCal format """
         # Check the basics exist
         if self.check_fields():
             output = self.header + '\n'
@@ -81,10 +95,15 @@ class Event(object):
             output += self.footer + '\n'
 
             return output
+        return None
 
 
-@app.route('/')
+@APP.route('/')
 def build_calendar():
+    """
+    Function to scrape and parse data from timeanddate.com and return it as
+    as iCal calendar
+    """
     calendar = Calendar()
 
     try:
@@ -94,14 +113,14 @@ def build_calendar():
                 .urlopen(request)
                 .read())
     except urllib2.URLError as errmsg:
-        app.logger.error(errmsg)
+        APP.logger.error(errmsg)
     else:
         soup = BeautifulSoup(page)
         candidates = soup.findAll('tr', {'class': ['c0', 'c1']})
         for event in candidates:
             if event.findAll('td')[2].text in [
-                'Observance',
-                'Clock change/Daylight Saving Time'
+                    'Observance',
+                    'Clock change/Daylight Saving Time'
             ]:
                 new_event = Event()
                 eventdate = (datetime.strptime(event.findAll('th')[0].text,
